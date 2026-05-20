@@ -37,8 +37,12 @@ pipeline {
                         // Replace backslashes with forward slashes for Windows compatibility in Git Bash
                         def keyPath = KEY_FILE.replace('\\', '/')
 
-                        // Restrict file permissions in Windows to satisfy OpenSSH private key restrictions
-                        bat "icacls.exe \"${KEY_FILE}\" /inheritance:r /grant:r *S-1-5-18:F /grant:r *S-1-5-32-544:F /grant:r *S-1-3-4:F"
+                        // Restrict file permissions in Windows to satisfy OpenSSH private key restrictions.
+                        // We query the current user's SID dynamically so we only grant access to the actual process user, SYSTEM, and Administrators.
+                        powershell """
+                            \$sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+                            icacls.exe "${KEY_FILE}" /inheritance:r /grant:r "*S-1-5-18:F" /grant:r "*S-1-5-32-544:F" /grant:r "*\$sid:F"
+                        """
 
                         sh """
                         ssh -i "${keyPath}" -o StrictHostKeyChecking=no ${SSH_USER}@${EC2_IP} '
