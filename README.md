@@ -4,126 +4,350 @@
 
 > *"Every wrinkle tells a story. Every hand, a heritage."*
 
-**Virasa** is a heartfelt digital marketplace and storytelling platform dedicated to **honoring and empowering elderly individuals and artisans** across India. The platform serves as a digital gallery and market, preserving traditional crafts, showcasing lived wisdom, and connecting these master craftspeople with contemporary global markets.
+**Virasa** is a heartfelt digital marketplace and storytelling platform dedicated to **honoring and empowering elderly individuals and artisans** across India. The platform serves as a digital gallery and marketplace preserving traditional crafts, showcasing lived wisdom, and connecting master craftspeople with contemporary global audiences.
 
 ---
 
-## 🌟 Key Features
+# 🌟 Key Features
 
-*   📜 **Story Showcase & Submission** – A space for users to discover and submit inspiring stories of traditional artisans and community elders.
-*   🎨 **Interactive & Revolutionary Galleries** – Beautiful, fluid grids showcasing master-crafted works.
-*   🛍️ **Artisan Marketplace** – Explore and purchase genuine handmade crafts directly from artisans.
-*   🛒 **Integrated Cart & Favorites** – Seamless shopping experience powered by React Context.
-*   📱 **Premium UI/UX** – Highly responsive, fluid layout designed with glassmorphism, rich color palettes (`warm-ivory`, `deep-indigo`, `terracotta`), and micro-animations.
-
----
-
-## 🛠️ Technology Stack
-
-*   **Framework:** [Next.js 15](https://nextjs.org/) (React 19)
-*   **Styling:** [Tailwind CSS](https://tailwindcss.com/)
-*   **Animations:** [Framer Motion](https://www.framer.com/motion/)
-*   **Icons:** [Lucide React](https://lucide.dev/)
-*   **State Management:** React Context API (Cart & Favorites)
-*   **DevOps:** Docker, AWS EC2, Jenkins, Git
+- 📜 **Story Showcase & Submission** – Discover and submit inspiring stories of artisans and elders.
+- 🎨 **Interactive Galleries** – Beautiful handcrafted product showcases with immersive UI.
+- 🛍️ **Artisan Marketplace** – Explore and purchase authentic handmade crafts.
+- 🛒 **Integrated Cart & Favorites** – Shopping functionality powered by React Context API.
+- 📱 **Premium UI/UX** – Responsive glassmorphism-inspired modern interface with animations.
 
 ---
 
-## ⚙️ DevOps & CI/CD Architecture
+# 🛠️ Technology Stack
 
-We implemented a robust **CI/CD pipeline** automating the deployment of the Next.js application from local development pushes to a remote production server on AWS EC2 using Docker containers.
+| Category | Technology |
+|---|---|
+| Framework | Next.js 15 (React 19) |
+| Styling | Tailwind CSS |
+| Animations | Framer Motion |
+| Icons | Lucide React |
+| State Management | React Context API |
+| DevOps | Docker, Jenkins, AWS EC2 |
+| Version Control | Git & GitHub |
 
-```mermaid
-graph TD
-    Developer[Developer commits code] -->|git push| GitHub[GitHub Repository]
-    GitHub -->|Webhook Trigger| Jenkins[Jenkins Server (Local Windows Host)]
-    
-    subgraph Jenkins Pipeline Steps
-        Jenkins --> Step1[1. Checkout SCM]
-        Step1 --> Step2[2. Set Secure Permissions via PowerShell]
-        Step2 --> Step3[3. Remote SSH to EC2 via withCredentials]
-    end
-    
-    subgraph AWS EC2 Production Host
-        Step3 --> EC2_Git[Git Clone/Pull latest code]
-        EC2_Git --> EC2_Docker_Clean[Stop & Remove old container/image]
-        EC2_Docker_Clean --> EC2_Docker_Build[Build Docker image natively]
-        EC2_Docker_Build --> EC2_Docker_Run[Run standalone Docker container on Port 3000]
-    end
+---
+
+# ⚙️ DevOps & CI/CD Architecture
+
+We implemented a complete CI/CD pipeline that automatically deploys the application from GitHub to AWS EC2 using Jenkins and Docker.
+
+---
+
+## 🔄 CI/CD Workflow
+
+```text
+Developer commits code
+        │
+        ▼
+Git Push to GitHub Repository
+        │
+        ▼
+Webhook triggers Jenkins Pipeline
+        │
+        ▼
+Jenkins Server (Windows Host)
+        │
+        ├── Checkout SCM
+        ├── Configure Secure SSH Key Permissions
+        ├── SSH into AWS EC2
+        │
+        ▼
+AWS EC2 Production Server
+        │
+        ├── Pull Latest Code
+        ├── Stop & Remove Old Container
+        ├── Remove Old Docker Image
+        ├── Build New Docker Image
+        ├── Run New Container on Port 3000
+        │
+        ▼
+Application Live on Public EC2 IP
 ```
 
-### 1. Dockerization
-The application is containerized using an optimized, multi-stage `Dockerfile` based on `node:20-slim`.
-*   **Standalone Build Mode:** Configured `output: 'standalone'` in [next.config.js](file:///d:/PROJECTS@/Virasa/Virsa/next.config.js) to leverage Next.js's optimized bundle capability, reducing the final Docker image footprint from ~1GB to under **150MB**.
-*   **WSL2 Network Resilience:** Custom configurations (`fetch-retry-maxtimeout`, `fetch-retries`) are applied during the package installation step to handle translation timeouts common in local Docker Desktop environments.
-
-### 2. AWS EC2 Hosting
-*   **Compute:** AWS EC2 Instance running Ubuntu.
-*   **Port Mapping:** The application's Docker container runs on host port `3000` (container port `3000`).
-*   **Security Groups:** Port `3000` is exposed to allow external web traffic, and Port `22` is restricted to authorized SSH keys.
-
-### 3. Jenkins Pipeline ([Jenkinsfile](file:///d:/PROJECTS@/Virasa/Virsa/Jenkinsfile))
-Since Jenkins runs on a Windows local machine (`localhost:8080`), we overcame several OS-specific challenges to build a seamless pipeline:
-
-*   **Bypassing the SSH-Agent Service (Error 1058):** Windows disables the native `ssh-agent` service by default. Instead of forcing manual service configurations, we utilized Jenkins' `withCredentials` wrapper to securely provision the SSH private key dynamically.
-*   **Windows-to-Git-Bash Path Translation:** Groovy script automatically normalizes the Windows temporary key path, swapping backslashes with forward slashes (`KEY_FILE.replace('\\', '/')`) so Git Bash can parse the identity file path during `ssh` commands.
-*   **Dynamic Security Descriptor Setup (OpenSSH Warning):** OpenSSH refuses connections if the private key file has permissive access lists (e.g. `BUILTIN\Users`). We resolved this using a native **PowerShell script** block in the pipeline to:
-    1.  Disable ACL inheritance on the temporary key file.
-    2.  Query the exact Security Identifier (SID) of the active Jenkins worker process.
-    3.  Grant Full Control exclusively to that SID and the `SYSTEM` account, leaving the file completely secured.
-*   **Native Remote Building:** To avoid WSL2 network bugs during local Docker builds, the local build stage was commented out. Instead, Jenkins SSHes into the EC2 instance, checks out the code, and builds the Docker image natively under the EC2 hardware environment.
-
 ---
 
-## 🚀 Getting Started
+# 🐳 Dockerization
 
-### Prerequisites
-*   Node.js (v20+)
-*   Docker (Optional, for containerized run)
+The application was containerized using an optimized multi-stage Docker build.
 
-### Local Development
-1.  **Clone the Repository:**
-    ```bash
-    git clone -b gallery-section https://github.com/sachinburnwal22/Virsa.git
-    cd Virsa
-    ```
-2.  **Install Dependencies:**
-    ```bash
-    npm install
-    ```
-3.  **Start Dev Server:**
-    ```bash
-    npm run dev
-    ```
-    Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Highlights
 
----
+- Used `node:20-slim`
+- Multi-stage Docker build
+- Production optimized image
+- Reduced image size significantly
+- Configured standalone Next.js output
 
-## 🐳 Running with Docker
+### Docker Build Command
 
-### Build the Image
-To build the optimized Docker container locally:
 ```bash
 docker build -t virsa-app .
 ```
 
-### Run the Container
-Run the container detached on port `3000`:
+### Run Container
+
 ```bash
 docker run -d -p 3000:3000 --name virsa-container virsa-app
 ```
 
 ---
 
-## 🔧 Jenkins Pipeline Configuration
+# ☁️ AWS EC2 Deployment
 
-To replicate this setup on your local Jenkins instance:
+## EC2 Configuration
 
-1.  **Install Plugins:** Ensure the `Pipeline` and `Credentials Binding` plugins are active.
-2.  **Add Credentials:**
-    *   Navigate to **Manage Jenkins** -> **Credentials**.
-    *   Add a new credential of type **SSH User Private Key**.
-    *   Set the ID as `ec2-ssh-key` and paste your AWS EC2 `.pem` key file contents.
-3.  **Configure Environment Variables in Pipeline:**
-    *   Ensure your `Jenkinsfile` points to your correct EC2 IP Address (`EC2_IP`) and SSH username (`ubuntu`).
-4.  **Create Pipeline Job:** Point your Pipeline definition to this Git repository and branch (`gallery-section`).
+- Ubuntu EC2 Instance
+- Docker installed on server
+- Git installed on server
+- Port 3000 exposed publicly
+- SSH access configured using `.pem` key
+
+## Deployment Flow
+
+Jenkins connects remotely to EC2 using SSH and executes deployment commands automatically.
+
+---
+
+# 🔧 Jenkins CI/CD Pipeline
+
+The Jenkins pipeline is fully automated using a `Jenkinsfile`.
+
+## Pipeline Stages
+
+### 1. Checkout SCM
+Fetch latest source code from GitHub.
+
+### 2. Configure SSH Security
+Secure temporary SSH private key permissions using PowerShell.
+
+### 3. Deploy to EC2
+Remote deployment using SSH commands.
+
+---
+
+# 🧩 Real DevOps Challenges Solved
+
+This project involved solving multiple real-world DevOps problems.
+
+---
+
+## ✅ Issue 1 — npm Installation Failure
+
+### Error
+
+```bash
+npm error Exit handler never called!
+```
+
+### Solution
+
+- Switched to `node:20-slim`
+- Used `npm ci`
+- Added npm retry configurations
+
+---
+
+## ✅ Issue 2 — Next.js Build Failure
+
+### Error
+
+```bash
+sh: 1: next: not found
+```
+
+### Solution
+
+Fixed dependency installation stage and Docker layering.
+
+---
+
+## ✅ Issue 3 — Windows ssh-agent Failure
+
+### Error
+
+```bash
+Failed to run ssh-agent service
+```
+
+### Solution
+
+Replaced:
+
+```groovy
+sshagent
+```
+
+with:
+
+```groovy
+withCredentials
+```
+
+This avoided dependency on Windows SSH Agent service.
+
+---
+
+## ✅ Issue 4 — SSH Private Key Permission Error
+
+### Error
+
+```bash
+UNPROTECTED PRIVATE KEY FILE!
+```
+
+### Solution
+
+Used native PowerShell ACL commands to securely restrict temporary SSH key permissions during Jenkins execution.
+
+---
+
+## ✅ Issue 5 — Docker Build Issues on Jenkins Host
+
+### Problem
+
+WSL2 and local Docker builds caused networking and dependency resolution issues.
+
+### Solution
+
+Moved Docker image building directly to AWS EC2 server instead of local Jenkins host.
+
+---
+
+# 🚀 Live Deployment
+
+The application is successfully deployed and accessible publicly.
+
+## Live URL
+
+```text
+http://51.21.192.6:3000
+```
+
+---
+
+# 📂 Project Setup
+
+## Clone Repository
+
+```bash
+git clone -b gallery-section https://github.com/sachinburnwal22/Virsa.git
+cd Virsa
+```
+
+---
+
+# 📦 Install Dependencies
+
+```bash
+npm install
+```
+
+---
+
+# ▶️ Run Development Server
+
+```bash
+npm run dev
+```
+
+Open:
+
+```text
+http://localhost:3000
+```
+
+---
+
+# 🐳 Run Using Docker
+
+## Build Docker Image
+
+```bash
+docker build -t virsa-app .
+```
+
+## Run Container
+
+```bash
+docker run -d -p 3000:3000 --name virsa-container virsa-app
+```
+
+---
+
+# 🔐 Jenkins Credentials Setup
+
+## Add EC2 SSH Key
+
+Navigate to:
+
+```text
+Manage Jenkins → Credentials
+```
+
+Add:
+
+- Type: SSH Username with Private Key
+- ID: `ec2-ssh-key`
+
+Paste your AWS `.pem` file contents.
+
+---
+
+# 📜 Jenkinsfile Responsibilities
+
+The Jenkins pipeline automatically:
+
+- Pulls latest code from GitHub
+- Secures SSH key permissions
+- Connects to EC2
+- Pulls latest code on EC2
+- Stops old container
+- Removes old image
+- Builds new Docker image
+- Runs latest container
+
+---
+
+# 💡 DevOps Concepts Demonstrated
+
+- CI/CD Pipeline Automation
+- Infrastructure as Code
+- Docker Containerization
+- Cloud Deployment on AWS
+- SSH Authentication
+- Jenkins Pipeline Automation
+- Linux Server Management
+- Production Deployment Debugging
+
+---
+
+# 📸 Project Demonstration
+
+## Successfully Demonstrated
+
+- Jenkins automated pipeline execution
+- GitHub integration
+- Docker container deployment
+- EC2 remote deployment
+- Live application hosting
+
+---
+
+# 👨‍💻 Author
+
+**Sachin Burnwal**
+
+---
+
+# ❤️ Vision Behind Virasa
+
+Virasa is more than just a marketplace.
+
+It is an initiative to digitally preserve India's cultural heritage, empower elderly artisans, and connect timeless craftsmanship with modern audiences worldwide.
+
+> “Technology should not replace tradition — it should preserve and amplify it.”
