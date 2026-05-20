@@ -3,7 +3,12 @@ FROM node:20-slim AS deps
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci --no-audit
+# Configure npm for network resilience (helps with slow Docker network/WSL2 issues)
+RUN npm config set registry https://registry.npmjs.org/ && \
+    npm config set fetch-retry-maxtimeout 60000 && \
+    npm config set fetch-retry-mintimeout 10000 && \
+    npm config set fetch-retries 5 && \
+    npm ci --no-audit
 
 # ---------- Builder ----------
 FROM node:20-slim AS builder
