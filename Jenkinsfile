@@ -19,11 +19,16 @@ pipeline {
             }
         }
 
+        // This local build stage is redundant and can be skipped because the EC2 instance 
+        // clones the repository and builds the Docker image directly on the remote host.
+        // Uncomment if you want to verify builds locally on the Jenkins machine.
+        /*
         stage('Build Docker Image') {
             steps {
                 sh 'docker build -t virsa-app .'
             }
         }
+        */
 
         stage('Deploy to EC2') {
             steps {
