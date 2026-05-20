@@ -70,6 +70,10 @@ pipeline {
                         # Remove old image
                         docker rmi virsa-app || true
 
+                        # Clean up docker disk space (prune unused images, build caches, and containers)
+                        docker system prune -af || true
+                        docker builder prune -af || true
+
                         # Build new image
                         docker build -t virsa-app .
 
