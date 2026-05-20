@@ -38,7 +38,7 @@ pipeline {
                         def keyPath = KEY_FILE.replace('\\', '/')
 
                         // Restrict file permissions in Windows to satisfy OpenSSH private key restrictions
-                        bat "icacls.exe \"${KEY_FILE}\" /inheritance:r /grant:r *S-1-5-18:F /grant:r \"%USERNAME%\":F"
+                        bat "icacls.exe \"${KEY_FILE}\" /inheritance:r /grant:r *S-1-5-18:F /grant:r *S-1-5-32-544:F /grant:r *S-1-3-4:F"
 
                         sh """
                         ssh -i "${keyPath}" -o StrictHostKeyChecking=no ${SSH_USER}@${EC2_IP} '
