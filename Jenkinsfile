@@ -36,6 +36,10 @@ pipeline {
                     script {
                         // Replace backslashes with forward slashes for Windows compatibility in Git Bash
                         def keyPath = KEY_FILE.replace('\\', '/')
+
+                        // Restrict file permissions in Windows to satisfy OpenSSH private key restrictions
+                        bat "icacls.exe \"${KEY_FILE}\" /inheritance:r /grant:r *S-1-5-18:F /grant:r \"%USERNAME%\":F"
+
                         sh """
                         ssh -i "${keyPath}" -o StrictHostKeyChecking=no ${SSH_USER}@${EC2_IP} '
                         # Remove old app folder if exists
