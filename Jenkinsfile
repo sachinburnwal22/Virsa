@@ -38,10 +38,19 @@ pipeline {
                         def keyPath = KEY_FILE.replace('\\', '/')
 
                         // Restrict file permissions in Windows to satisfy OpenSSH private key restrictions.
-                        // We query the current user's SID dynamically so we only grant access to the actual process user, SYSTEM, and Administrators.
+                        // We use native PowerShell Get-Acl/Set-Acl to set the key file's permissions to be accessible
+                        // only by the current Jenkins process owner and SYSTEM.
                         powershell """
-                            \$sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
-                            icacls.exe "${KEY_FILE}" /inheritance:r /grant:r "*S-1-5-18:F" /grant:r "*S-1-5-32-544:F" /grant:r "*\$sid:F"
+                            \$path = "${KEY_FILE}"
+                            \$acl = Get-Acl \$path
+                            \$acl.SetAccessRuleProtection(\$true, \$false)
+                            \$currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+                            \$userRule = New-Object System.Security.AccessControl.FileSystemAccessRule(\$currentUser.User, "FullControl", "Allow")
+                            \$acl.AddAccessRule(\$userRule)
+                            \$systemSID = New-Object System.Security.Principal.SecurityIdentifier("S-1-5-18")
+                            \$systemRule = New-Object System.Security.AccessControl.FileSystemAccessRule(\$systemSID, "FullControl", "Allow")
+                            \$acl.AddAccessRule(\$systemRule)
+                            Set-Acl \$path \$acl
                         """
 
                         sh """
