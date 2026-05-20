@@ -32,37 +32,39 @@ pipeline {
 
         stage('Deploy to EC2') {
             steps {
-                sshagent(credentials: ['ec2-ssh-key']) {
+                withCredentials([sshUserPrivateKey(credentialsId: 'ec2-ssh-key', keyFileVariable: 'KEY_FILE', usernameVariable: 'SSH_USER')]) {
+                    script {
+                        // Replace backslashes with forward slashes for Windows compatibility in Git Bash
+                        def keyPath = KEY_FILE.replace('\\', '/')
+                        sh """
+                        ssh -i "${keyPath}" -o StrictHostKeyChecking=no ${SSH_USER}@${EC2_IP} '
+                        # Remove old app folder if exists
+                        rm -rf Virsa
 
-                    sh """
-                    ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_IP} '
+                        # Clone latest code
+                        git clone -b ${BRANCH} ${REPO_URL}
 
-                    # Remove old app folder if exists
-                    rm -rf Virsa
+                        cd Virsa
 
-                    # Clone latest code
-                    git clone -b ${BRANCH} ${REPO_URL}
+                        # Stop old container
+                        docker stop virsa-container || true
+                        docker rm virsa-container || true
 
-                    cd Virsa
+                        # Remove old image
+                        docker rmi virsa-app || true
 
-                    # Stop old container
-                    docker stop virsa-container || true
-                    docker rm virsa-container || true
+                        # Build new image
+                        docker build -t virsa-app .
 
-                    # Remove old image
-                    docker rmi virsa-app || true
-
-                    # Build new image
-                    docker build -t virsa-app .
-
-                    # Run new container
-                    docker run -d \
-                    --name virsa-container \
-                    -p 3000:3000 \
-                    --restart always \
-                    virsa-app
-                    '
-                    """
+                        # Run new container
+                        docker run -d \
+                        --name virsa-container \
+                        -p 3000:3000 \
+                        --restart always \
+                        virsa-app
+                        '
+                        """
+                    }
                 }
             }
         }
